@@ -1,6 +1,6 @@
 # 🌱 Carbon AI Job Scheduler
+![homepage](https://github.com/user-attachments/assets/998a859b-b934-46a2-bb88-05d0abd43668)
 
-![Carbon AI Job Scheduler](insert_demo_image_here.png)
 
 ## Overview
 Carbon AI Job Scheduler is an intelligent task scheduling system that optimizes computing workloads to minimize carbon emissions. By leveraging real-time carbon intensity data and multiple AI services, it provides smart scheduling recommendations and detailed environmental impact analysis for resource-intensive computing tasks.
