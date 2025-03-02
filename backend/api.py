@@ -9,6 +9,7 @@ from carbon_data import get_carbon_intensity
 from groq_inference import get_optimal_schedule
 from insights import get_insights
 from models import Job, JobStatus, get_db, Base, engine
+import json
 
 router = APIRouter()
 
@@ -97,13 +98,7 @@ async def schedule_task(task: Task, db: Session = Depends(get_db)):
             parameters={
                 "task": task.dict(),
                 "carbon_data": carbon_data,
-                "recommendation": {
-                    "expected_intensity": optimized_intensity,
-                    "recommended_start_time": recommendation.get("recommended_start_time"),
-                    "alternative_windows": recommendation.get("alternative_windows", []),
-                    "confidence_score": recommendation.get("confidence_score", 0.7),
-                    "reasoning": recommendation.get("reasoning", "Optimized for lower carbon intensity")
-                },
+                "recommendation": recommendation,
                 "confidence_score": recommendation.get("confidence_score", 0.7),
                 "reasoning": recommendation.get("reasoning", "Optimized for lower carbon intensity")
             },

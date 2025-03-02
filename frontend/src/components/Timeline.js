@@ -23,7 +23,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import CO2Icon from '@mui/icons-material/Co2';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import { green, orange, red } from '@mui/material/colors';
+import { green, orange, red, blue } from '@mui/material/colors';
 import { soundManager } from '../utils/sounds';
 import { format } from 'date-fns';
 
@@ -85,7 +85,7 @@ function Timeline({ data }) {
             gap: 1,
             mb: 3
           }}>
-            <RecommendIcon /> Scheduling Analysis
+            <RecommendIcon /> AI-Powered Scheduling Analysis
           </Typography>
 
           <Grid container spacing={3}>
@@ -190,6 +190,47 @@ function Timeline({ data }) {
                         <Typography variant="body1" gutterBottom>
                           {recommendation.reasoning || 'Optimizing for carbon efficiency'}
                         </Typography>
+
+                        {/* Sustainability Impact Section */}
+                        {recommendation.sustainability_impact && (
+                          <Box sx={{ mt: 3, mb: 3, p: 2, bgcolor: 'rgba(76, 175, 80, 0.15)', borderRadius: 2 }}>
+                            <Typography variant="subtitle1" gutterBottom sx={{ color: green[700], fontWeight: 500 }}>
+                              Environmental Impact
+                            </Typography>
+                            <Grid container spacing={2}>
+                              <Grid item xs={12} sm={4}>
+                                <Box sx={{ textAlign: 'center', p: 1 }}>
+                                  <Typography variant="h4" sx={{ color: green[500] }}>
+                                    {recommendation.sustainability_impact.carbon_reduction_percentage}%
+                                  </Typography>
+                                  <Typography variant="body2" color="textSecondary">
+                                    Carbon Reduction
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid item xs={12} sm={4}>
+                                <Box sx={{ textAlign: 'center', p: 1 }}>
+                                  <Typography variant="h4" sx={{ color: green[500] }}>
+                                    {recommendation.sustainability_impact.equivalent_trees_planted}
+                                  </Typography>
+                                  <Typography variant="body2" color="textSecondary">
+                                    Trees Equivalent/Year
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid item xs={12} sm={4}>
+                                <Box sx={{ textAlign: 'center', p: 1 }}>
+                                  <Typography variant="h4" sx={{ color: green[500] }}>
+                                    ${recommendation.sustainability_impact.energy_cost_savings}
+                                  </Typography>
+                                  <Typography variant="body2" color="textSecondary">
+                                    Cost Savings
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                            </Grid>
+                          </Box>
+                        )}
                         
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2 }}>
                           <Tooltip title="Scheduled Start Time">
@@ -201,7 +242,7 @@ function Timeline({ data }) {
                             />
                           </Tooltip>
                           
-                          <Tooltip title="Confidence Score">
+                          <Tooltip title="Combined AI Confidence">
                             <Chip
                               label={`${(recommendation.confidence_score * 100).toFixed(1)}% Confidence`}
                               color={recommendation.confidence_score > 0.7 ? "success" : "warning"}
@@ -224,18 +265,18 @@ function Timeline({ data }) {
                             <Typography variant="subtitle2" color="textSecondary" gutterBottom>
                               Alternative Windows:
                             </Typography>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                               {recommendation.alternative_windows.map((window, index) => (
-                                <Tooltip 
-                                  key={index}
-                                  title={`Expected Intensity: ${window.expected_intensity.toFixed(2)} ${carbon_data.unit}`}
-                                >
+                                <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <Chip
                                     label={format(new Date(window.start_time), 'MMM d, yyyy HH:mm')}
                                     variant="outlined"
                                     size="small"
                                   />
-                                </Tooltip>
+                                  <Typography variant="body2" color="textSecondary">
+                                    {window.reason || `Expected Intensity: ${window.expected_intensity.toFixed(2)} ${carbon_data.unit}`}
+                                  </Typography>
+                                </Box>
                               ))}
                             </Box>
                           </Box>

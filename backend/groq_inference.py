@@ -45,27 +45,35 @@ Task Details:
 Current Carbon Intensity: {carbon_data.get('carbon_intensity', 0)} {carbon_data.get('unit', 'gCO2/kWh')}
 Time: {datetime.now().isoformat()}
 
-Based on this information, provide a scheduling recommendation in the following JSON format:
+Analyze the task considering:
+1. Daily carbon intensity patterns (typically lowest at night/early morning)
+2. Task resource usage impact ({task.resource_usage})
+3. Duration impact ({task.duration_hours} hours)
+4. Current intensity vs historical averages
+5. Potential carbon and cost savings
+
+Provide a detailed scheduling recommendation in the following JSON format:
 {{
     "recommended_start_time": "ISO datetime string",
     "expected_intensity": "number (gCO2/kWh)",
     "carbon_savings_estimate": "number (kg CO2)",
     "confidence_score": "number between 0-1",
-    "reasoning": "detailed explanation string",
+    "reasoning": "detailed explanation including environmental impact analysis",
+    "sustainability_impact": {{
+        "carbon_reduction_percentage": "number",
+        "equivalent_trees_planted": "number",
+        "energy_cost_savings": "number"
+    }},
     "alternative_windows": [
         {{
             "start_time": "ISO datetime string",
-            "expected_intensity": "number (gCO2/kWh)"
+            "expected_intensity": "number (gCO2/kWh)",
+            "reason": "explanation for this alternative"
         }}
     ]
 }}
 
-Consider:
-1. Current carbon intensity vs. typical daily patterns
-2. Task duration and resource usage impact
-3. Provide clear reasoning for your recommendation
-4. Include 1-2 alternative time windows
-
+Make your reasoning detailed and focused on environmental impact. Include specific sustainability metrics and comparisons.
 Respond ONLY with the JSON object, no additional text."""
 
         # Get completion from Groq
@@ -95,7 +103,7 @@ Respond ONLY with the JSON object, no additional text."""
             recommendation = json.loads(response_text)
             
             # Ensure all required fields are present
-            required_fields = ['recommended_start_time', 'expected_intensity', 'confidence_score', 'reasoning']
+            required_fields = ['recommended_start_time', 'expected_intensity', 'confidence_score', 'reasoning', 'sustainability_impact']
             if not all(field in recommendation for field in required_fields):
                 raise ValueError("Missing required fields in recommendation")
             
@@ -109,10 +117,20 @@ Respond ONLY with the JSON object, no additional text."""
                 task.resource_usage
             )
             
-            # Update recommendation with calculated savings
-            recommendation["carbon_savings_estimate"] = carbon_savings
+            # Calculate sustainability metrics
+            carbon_reduction = ((current_intensity - expected_intensity) / current_intensity) * 100
+            trees_equivalent = carbon_savings * 0.0165  # Rough estimate: 1 kg CO2 = 0.0165 trees/year
+            cost_savings = carbon_savings * 0.05  # Assuming $0.05 per kg CO2 saved
             
-            # Ensure alternative_windows is a list
+            # Update recommendation with calculated metrics
+            recommendation["carbon_savings_estimate"] = carbon_savings
+            recommendation["sustainability_impact"] = {
+                "carbon_reduction_percentage": round(carbon_reduction, 2),
+                "equivalent_trees_planted": round(trees_equivalent, 2),
+                "energy_cost_savings": round(cost_savings, 2)
+            }
+            
+            # Ensure alternative_windows is a list with reasons
             if "alternative_windows" not in recommendation:
                 recommendation["alternative_windows"] = []
             
