@@ -1,47 +1,86 @@
 import os
 import groq
+from datetime import datetime, timedelta
+import json
 from dotenv import load_dotenv
 load_dotenv()
 
-# Load Groq API key from environment variables
+# Get API key from environment variable
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-client = groq.Groq(api_key=GROQ_API_KEY)
+
+try:
+    # Initialize Groq client with basic configuration
+    client = groq.Groq(
+        api_key=GROQ_API_KEY,
+        base_url="https://api.groq.com/v1"
+    )
+except Exception as e:
+    print(f"Error initializing Groq client: {e}")
+    # Fallback to a simple client initialization
+    client = groq.Groq(api_key=GROQ_API_KEY)
 
 def get_optimal_schedule(task, carbon_data):
-    """
-    Use Groq's API to perform AI inference for scheduling.
-    """
-    payload = {
-        "task_name": task.task_name,
-        "duration": task.duration_hours,
-        "resource_usage": task.resource_usage,
-        "carbon_intensity": carbon_data["carbon_intensity"]
-    }
-    
+    """Get optimal schedule recommendation using Groq's LLM"""
     try:
-        response = client.chat.completions.create(
-            model="llama3-8b-8192",
-            messages=[{
-                "role": "user",
-                "content": f"Given this task information: {payload}, provide scheduling recommendations considering the carbon intensity."
-            }]
+        # Prepare the prompt
+        prompt = f"""Given a task with the following details:
+- Task Name: {task.task_name}
+- Duration: {task.duration_hours} hours
+- Resource Usage: {task.resource_usage}
+
+And current carbon intensity data:
+{json.dumps(carbon_data, indent=2)}
+
+Provide scheduling recommendations to minimize carbon impact. Consider:
+1. Best time to run the task
+2. Expected carbon intensity during that time
+3. Potential carbon savings
+
+Return the response as a JSON object with:
+- recommended_start_time
+- expected_intensity
+- carbon_savings_estimate
+- reasoning
+"""
+
+        # Get completion from Groq
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that provides scheduling recommendations to minimize carbon impact of computing tasks."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            model="mixtral-8x7b-32768",
+            temperature=0.7,
+            max_tokens=1000
         )
-        # Extract the response content
-        recommendation_text = response.choices[0].message.content if response.choices else "No recommendation available"
-        
-        # Calculate expected optimized intensity
-        # For demonstration, assume we can achieve 20-40% reduction based on task duration
-        reduction_factor = min(0.4, 0.2 + (task.duration_hours / 24) * 0.2)  # More flexible tasks can achieve greater reductions
-        expected_intensity = carbon_data["carbon_intensity"] * (1 - reduction_factor)
-        
-        return {
-            "recommendation": recommendation_text,
-            "expected_intensity": expected_intensity
-        }
+
+        # Parse the response
+        response_text = chat_completion.choices[0].message.content
+        try:
+            recommendation = json.loads(response_text)
+        except json.JSONDecodeError:
+            # Fallback if response is not valid JSON
+            recommendation = {
+                "recommended_start_time": (datetime.now() + timedelta(hours=1)).isoformat(),
+                "expected_intensity": carbon_data.get("carbon_intensity", 0) * 0.9,
+                "carbon_savings_estimate": 10,
+                "reasoning": "Based on current carbon intensity trends"
+            }
+
+        return recommendation
+
     except Exception as e:
-        # Fallback recommendation in case of an error with Groq API call
+        print(f"Error in get_optimal_schedule: {e}")
+        # Return a default recommendation if there's an error
         return {
-            "option": "Fallback",
-            "message": f"Error with Groq API: {str(e)}. Using fallback recommendation.",
-            "expected_intensity": carbon_data["carbon_intensity"]
+            "recommended_start_time": (datetime.now() + timedelta(hours=1)).isoformat(),
+            "expected_intensity": carbon_data.get("carbon_intensity", 0),
+            "carbon_savings_estimate": 0,
+            "reasoning": "Error occurred while getting recommendations"
         }

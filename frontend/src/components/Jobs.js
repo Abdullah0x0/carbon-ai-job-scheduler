@@ -49,10 +49,20 @@ function Jobs() {
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
 
+  // Get API URL from environment or use relative path for production
+  const getApiUrl = () => {
+    // Check if we're in development
+    if (process.env.NODE_ENV === 'development') {
+      return 'http://localhost:8000/api';
+    }
+    // In production (Vercel)
+    return 'https://carbon-ai-job-scheduler.onrender.com/api';
+  };
+
   const fetchJobs = async () => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/jobs`);
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/jobs`);
       if (!response.ok) throw new Error('Failed to fetch jobs');
       const data = await response.json();
       setJobs(data);
@@ -74,12 +84,12 @@ function Jobs() {
 
   const handleCancelJob = async (jobId) => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/jobs/${jobId}`, {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/jobs/${jobId}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to cancel job');
-      fetchJobs(); // Refresh the job list
+      fetchJobs();
     } catch (err) {
       console.error('Error cancelling job:', err);
     }
@@ -87,8 +97,8 @@ function Jobs() {
 
   const handleClearQueue = async () => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/jobs/clear`, {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/jobs/clear`, {
         method: 'DELETE'
       });
 
@@ -98,7 +108,7 @@ function Jobs() {
 
       setOpenDialog(false);
       setError(null);
-      await fetchJobs(); // Refresh the job list
+      await fetchJobs();
     } catch (err) {
       console.error('Error clearing job queue:', err);
       setError('Failed to clear job queue. Please try again.');
