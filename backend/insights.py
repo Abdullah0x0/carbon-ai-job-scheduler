@@ -1,5 +1,6 @@
 # backend/insights.py
 import os
+import requests
 from openai import OpenAI
 from dotenv import load_dotenv
 load_dotenv()
@@ -76,20 +77,54 @@ Keep each paragraph focused and concise. Use technical language but remain clear
     perplexity_key = os.getenv("PERPLEXITY_API_KEY")
     if perplexity_key:
         try:
-            client = OpenAI(api_key=perplexity_key, base_url="https://api.perplexity.ai")
+            print("Attempting to call Perplexity API...")
+            headers = {
+                "Authorization": f"Bearer {perplexity_key}",
+                "Content-Type": "application/json"
+            }
+            
+            # First verify API key
+            try:
+                response = requests.get(
+                    "https://api.perplexity.ai/account/info",
+                    headers=headers
+                )
+                if response.status_code != 200:
+                    print(f"API key verification failed: {response.status_code} - {response.text}")
+                    return get_fallback_insights(task, carbon_data)
+                print("API key verified successfully")
+            except Exception as e:
+                print(f"Error verifying API key: {str(e)}")
+                return get_fallback_insights(task, carbon_data)
+
+            # Make the actual API call
+            client = OpenAI(
+                api_key=perplexity_key,
+                base_url="https://api.perplexity.ai",
+                timeout=30.0
+            )
+            
             response = client.chat.completions.create(
-                model="sonar-pro",
+                model="sonar-pro-2",  # Updated model name
                 messages=messages,
                 temperature=0.4,
                 max_tokens=300
             )
             insights = response.choices[0].message.content.strip()
             if insights:
+                print("Successfully received insights from Perplexity API")
                 return insights
+            else:
+                print("Received empty response from API")
+                return get_fallback_insights(task, carbon_data)
         except Exception as e:
-            print(f"Error calling Perplexity API: {str(e)}")
+            print(f"Detailed error calling Perplexity API: {str(e)}")
+            if hasattr(e, 'response'):
+                print(f"Response status: {e.response.status_code}")
+                print(f"Response body: {e.response.text}")
+            return get_fallback_insights(task, carbon_data)
     
-    # Fallback to local insights generation
+    print("No Perplexity API key found, using fallback")
     return get_fallback_insights(task, carbon_data)
 
 # # Test function
