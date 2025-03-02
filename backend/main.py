@@ -13,8 +13,10 @@ origins = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",
     # Production URLs
-    "https://carbon-ai-job-scheduler.vercel.app"
-    #"https://carbon-ai-job-scheduler.onrender.com"
+    "https://carbon-ai-job-scheduler.vercel.app",
+    "https://carbon-ai-job-scheduler-git-main.vercel.app",
+    "https://carbon-ai-job-scheduler-*.vercel.app",  # Allow all preview deployments
+    "https://carbon-ai-job-scheduler.onrender.com"
 ]
 
 app.add_middleware(
@@ -23,6 +25,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Mount the API router

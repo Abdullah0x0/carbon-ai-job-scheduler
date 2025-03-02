@@ -23,23 +23,32 @@ import { useTheme } from './theme/ThemeContext';
 function App() {
   const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [tabIndex, setTabIndex] = useState(0);
   const { isDarkMode, toggleTheme } = useTheme();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
 
   const handleSchedule = async (taskData) => {
     setLoading(true);
+    setError(null);
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/schedule`, {
+      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${baseUrl}/api/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData)
       });
+      
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+      
       const data = await response.json();
       setScheduleData(data);
     } catch (error) {
       console.error("Error scheduling task:", error);
+      setError("Failed to schedule task. Please try again later.");
+      setScheduleData(null);
     }
     setLoading(false);
   };
@@ -120,6 +129,11 @@ function App() {
               {loading && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
                   <CircularProgress size={40} thickness={4} />
+                </Box>
+              )}
+              {error && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: 'error.main', color: 'error.contrastText', borderRadius: 1 }}>
+                  <Typography>{error}</Typography>
                 </Box>
               )}
               {scheduleData && <Timeline data={scheduleData} />}

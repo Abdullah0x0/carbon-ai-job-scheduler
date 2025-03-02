@@ -51,12 +51,8 @@ function Jobs() {
 
   // Get API URL from environment or use relative path for production
   const getApiUrl = () => {
-    // Check if we're in development
-    if (process.env.NODE_ENV === 'development') {
-      return 'http://localhost:8000/api';
-    }
-    // In production (Vercel)
-    return 'https://carbon-ai-job-scheduler.onrender.com/api';
+    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    return `${baseUrl}/api`;
   };
 
   const fetchJobs = async () => {

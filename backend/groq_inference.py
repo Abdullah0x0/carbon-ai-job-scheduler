@@ -8,15 +8,18 @@ load_dotenv()
 # Get API key from environment variable
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-try:
-    # Initialize Groq client with basic configuration
-    client = groq.Groq(
-        api_key=GROQ_API_KEY,
-    )
-except Exception as e:
-    print(f"Error initializing Groq client: {e}")
-    # Fallback to a simple client initialization
-    client = groq.Groq(api_key=GROQ_API_KEY)
+if not GROQ_API_KEY:
+    print("Groq API key not found in environment variables - using fallback recommendation system")
+    client = None
+else:
+    try:
+        # Initialize Groq client with basic configuration
+        client = groq.Groq(
+            api_key=GROQ_API_KEY,
+        )
+    except Exception as e:
+        print(f"Error initializing Groq client: {e}")
+        client = None
 
 def calculate_carbon_savings(baseline_intensity, optimized_intensity, duration_hours, resource_usage):
     """Calculate potential carbon savings based on intensity difference"""
@@ -32,7 +35,11 @@ def calculate_carbon_savings(baseline_intensity, optimized_intensity, duration_h
     return max(0, savings)  # Ensure non-negative savings
 
 def get_optimal_schedule(task, carbon_data):
-    """Get optimal schedule recommendation using Groq's LLM"""
+    """Get optimal schedule recommendation using Groq's LLM or fallback system"""
+    if not client:
+        print("Using fallback recommendation system")
+        return generate_fallback_recommendation(task, carbon_data)
+        
     try:
         # Prepare the prompt with more context and constraints
         prompt = f"""You are an AI scheduling assistant specializing in carbon-aware computing. Your task is to analyze the following job and provide scheduling recommendations in JSON format.
@@ -181,5 +188,65 @@ Respond ONLY with the JSON object, no additional text."""
             "carbon_savings_estimate": 0,
             "confidence_score": 0.3,
             "reasoning": f"Error in optimization: {str(e)}. Defaulting to +1 hour schedule.",
+            "alternative_windows": []
+        }
+
+def generate_fallback_recommendation(task, carbon_data):
+    """Generate a fallback recommendation when Groq API is not available"""
+    try:
+        current_time = datetime.now()
+        # Schedule for early morning (2 AM) when carbon intensity is typically lower
+        optimal_hour = 2
+        recommended_time = current_time.replace(hour=optimal_hour, minute=0)
+        if recommended_time < current_time:
+            recommended_time += timedelta(days=1)
+            
+        current_intensity = carbon_data.get("carbon_intensity", 0)
+        expected_intensity = current_intensity * 0.8  # Assume 20% reduction during optimal time
+        
+        carbon_savings = calculate_carbon_savings(
+            current_intensity,
+            expected_intensity,
+            task.duration_hours,
+            task.resource_usage
+        )
+        
+        # Calculate sustainability metrics
+        carbon_reduction = ((current_intensity - expected_intensity) / current_intensity) * 100
+        trees_equivalent = carbon_savings * 0.0165  # Rough estimate: 1 kg CO2 = 0.0165 trees/year
+        cost_savings = carbon_savings * 0.05  # Assuming $0.05 per kg CO2 saved
+        
+        return {
+            "recommended_start_time": recommended_time.isoformat(),
+            "expected_intensity": expected_intensity,
+            "carbon_savings_estimate": carbon_savings,
+            "confidence_score": 0.7,
+            "reasoning": "Scheduled for typical low-carbon intensity period (early morning) based on historical patterns",
+            "sustainability_impact": {
+                "carbon_reduction_percentage": round(carbon_reduction, 2),
+                "equivalent_trees_planted": round(trees_equivalent, 2),
+                "energy_cost_savings": round(cost_savings, 2)
+            },
+            "alternative_windows": [
+                {
+                    "start_time": (recommended_time + timedelta(days=1)).isoformat(),
+                    "expected_intensity": expected_intensity * 1.1,
+                    "reason": "Alternative window with slightly higher carbon intensity"
+                }
+            ]
+        }
+    except Exception as e:
+        print(f"Error in fallback recommendation: {e}")
+        return {
+            "recommended_start_time": (datetime.now() + timedelta(hours=1)).isoformat(),
+            "expected_intensity": carbon_data.get("carbon_intensity", 0),
+            "carbon_savings_estimate": 0,
+            "confidence_score": 0.3,
+            "reasoning": "Using simple +1 hour schedule due to error in optimization",
+            "sustainability_impact": {
+                "carbon_reduction_percentage": 0,
+                "equivalent_trees_planted": 0,
+                "energy_cost_savings": 0
+            },
             "alternative_windows": []
         }
