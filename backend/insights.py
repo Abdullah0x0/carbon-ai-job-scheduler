@@ -13,23 +13,31 @@ def get_insights(task, carbon_data):
     Call the Perplexity API to fetch energy-saving insights using their chat completions endpoint.
     """
     prompt = f"""
-    Task: {task.task_name} ({task.duration_hours} hours, {task.resource_usage})
-    Current Carbon Intensity: {carbon_data['carbon_intensity']} {carbon_data.get('unit', 'gCO2/kWh')}
-    Location: {carbon_data.get('location', 'Unknown')}
+    Task Analysis Request:
+    - Task Name: {task.task_name}
+    - Duration: {task.duration_hours} hours
+    - Resource Profile: {task.resource_usage}
+    - Region: {carbon_data.get('location', 'Unknown')}
+    - Current Grid Load: {carbon_data['carbon_intensity']} {carbon_data.get('unit', 'gCO2/kWh')}
 
-    Provide 3 key insights about this task's environmental impact and optimization.
-    Format each insight as a bullet point starting with •
-    
-    Example format:
-    • Current carbon intensity is 20% above average
-    • Schedule during 2-6 AM for optimal efficiency
-    • Potential savings of 45 kg CO2 (30% reduction)
+    Provide technical optimization insights focusing on:
+    1. Resource utilization patterns
+    2. Performance vs. energy tradeoffs
+    3. System-level optimization opportunities
     """
     
     messages = [
         {
             "role": "system",
-            "content": "You are a sustainability advisor providing quick, actionable insights for compute task scheduling. Format all insights as bullet points starting with •. Be concise and specific, focusing on immediate actions and concrete numbers."
+            "content": """You are a technical optimization advisor specializing in high-performance computing and resource scheduling. Structure your response in 2-3 paragraphs:
+
+1. First paragraph: Provide context about the current conditions and task requirements
+2. Following paragraphs: Give specific technical recommendations focusing on:
+   - Resource optimization strategies
+   - System-level improvements
+   - Performance/energy tradeoffs
+
+Keep each paragraph focused and concise. Use technical language but remain clear and actionable. Total response should be under 200 words."""
         },
         {
             "role": "user", 
@@ -43,21 +51,17 @@ def get_insights(task, carbon_data):
         response = client.chat.completions.create(
             model="sonar-pro",
             messages=messages,
-            temperature=0.5,  # More consistent responses
-            max_tokens=250    # Keep it brief
+            temperature=0.4,  # More consistent responses
+            max_tokens=300    # Allow for slightly longer, structured response
         )
         insights = response.choices[0].message.content.strip()
-        # Ensure each line starts with a bullet point
-        insights = '\n'.join([
-            f"• {line.lstrip('• -').strip()}" 
-            for line in insights.split('\n') 
-            if line.strip()
-        ])
         return insights
         
     except Exception as e:
         print(f"Error calling Perplexity API: {str(e)}")
-        return "• Consider scheduling during off-peak hours (typically night time) for optimal efficiency."
+        return """Current system conditions indicate high resource availability with moderate load levels. Task parameters suggest standard compute requirements.
+
+Consider implementing dynamic voltage and frequency scaling (DVFS) to optimize power consumption while maintaining performance targets. This approach typically yields 15-30% energy savings with minimal impact on execution time."""
 
 # # Test function
 # if __name__ == "__main__":
