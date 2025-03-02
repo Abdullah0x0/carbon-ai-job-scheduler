@@ -26,9 +26,6 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { green, orange, red, blue } from '@mui/material/colors';
 import { soundManager } from '../utils/sounds';
 import { format } from 'date-fns';
-import SettingsIcon from '@mui/icons-material/Settings';
-import SpeedIcon from '@mui/icons-material/Speed';
-import BoltIcon from '@mui/icons-material/Bolt';
 
 function Timeline({ data }) {
   const [expandedSection, setExpandedSection] = useState('all');
@@ -324,8 +321,8 @@ function Timeline({ data }) {
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <InfoIcon sx={{ color: blue[700] }} />
-                        <Typography variant="h6">Technical Analysis</Typography>
+                        <InfoIcon sx={{ color: theme.palette.info.main }} />
+                        <Typography variant="h6">Additional Insights</Typography>
                       </Box>
                       {renderExpandIcon('insights')}
                     </Box>
@@ -334,75 +331,11 @@ function Timeline({ data }) {
                       <Box sx={{ 
                         p: 2, 
                         borderRadius: 1,
-                        bgcolor: 'rgba(33, 150, 243, 0.04)',
-                        border: '1px solid rgba(33, 150, 243, 0.1)'
+                        bgcolor: 'rgba(33, 150, 243, 0.08)'
                       }}>
-                        {/* Context Summary */}
-                        <Box sx={{ mb: 3 }}>
-                          <Typography variant="subtitle1" sx={{ 
-                            color: blue[700], 
-                            fontWeight: 500,
-                            mb: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
-                          }}>
-                            <AssignmentIcon fontSize="small" /> Context
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            {insights.split('\n\n')[0]}
-                          </Typography>
-                        </Box>
-
-                        {/* Technical Recommendations */}
-                        <Box sx={{ mb: 3 }}>
-                          <Typography variant="subtitle1" sx={{ 
-                            color: blue[700], 
-                            fontWeight: 500,
-                            mb: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
-                          }}>
-                            <SettingsIcon fontSize="small" /> Optimization Recommendations
-                          </Typography>
-                          <Box sx={{ pl: 2, borderLeft: `3px solid ${blue[100]}` }}>
-                            {insights.split('\n\n').slice(1).map((section, index) => (
-                              <Typography key={index} variant="body2" sx={{ 
-                                color: 'text.primary',
-                                mb: 2,
-                                '&:last-child': { mb: 0 }
-                              }}>
-                                {section}
-                              </Typography>
-                            ))}
-                          </Box>
-                        </Box>
-
-                        {/* Technical Metrics */}
-                        {recommendation.expected_intensity && (
-                          <Box sx={{ 
-                            display: 'flex', 
-                            gap: 2, 
-                            flexWrap: 'wrap',
-                            mt: 2,
-                            pt: 2,
-                            borderTop: '1px solid rgba(33, 150, 243, 0.1)'
-                          }}>
-                            <Chip
-                              icon={<SpeedIcon />}
-                              label="Performance Impact: Minimal"
-                              size="small"
-                              sx={{ bgcolor: 'rgba(33, 150, 243, 0.08)' }}
-                            />
-                            <Chip
-                              icon={<BoltIcon />}
-                              label="Energy Savings: Up to 30%"
-                              size="small"
-                              sx={{ bgcolor: 'rgba(33, 150, 243, 0.08)' }}
-                            />
-                          </Box>
-                        )}
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {insights}
+                        </ReactMarkdown>
                       </Box>
                     </Collapse>
                   </CardContent>
