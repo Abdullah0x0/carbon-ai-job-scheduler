@@ -1,9 +1,27 @@
 # backend/insights.py
 import os
+import json
 import requests
 from openai import OpenAI
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=True)
+
+def debug_env_vars():
+    """Debug function to check environment variables"""
+    perplexity_key = os.getenv("PERPLEXITY_API_KEY")
+    groq_key = os.getenv("GROQ_API_KEY")
+    watttime_user = os.getenv("WATTTIME_USERNAME")
+    watttime_pass = os.getenv("WATTTIME_PASSWORD")
+    
+    print("\nEnvironment Variables Status:")
+    print(f"PERPLEXITY_API_KEY present: {bool(perplexity_key)}")
+    print(f"GROQ_API_KEY present: {bool(groq_key)}")
+    print(f"WATTTIME_USERNAME present: {bool(watttime_user)}")
+    print(f"WATTTIME_PASSWORD present: {bool(watttime_pass)}")
+    
+    if perplexity_key:
+        print(f"Perplexity key length: {len(perplexity_key)}")
+        print(f"Perplexity key starts with: {perplexity_key[:10]}...")
 
 def get_fallback_insights(task, carbon_data):
     """Generate fallback insights when API is unavailable"""
@@ -40,6 +58,9 @@ def get_insights(task, carbon_data):
     """
     Generate insights using Perplexity API with fallback to local generation.
     """
+    # Debug environment variables
+    debug_env_vars()
+    
     prompt = f"""
     Task Analysis Request:
     - Task Name: {task.task_name}
@@ -75,56 +96,80 @@ Keep each paragraph focused and concise. Use technical language but remain clear
 
     # Try to use Perplexity API if available
     perplexity_key = os.getenv("PERPLEXITY_API_KEY")
-    if perplexity_key:
-        try:
-            print("Attempting to call Perplexity API...")
-            headers = {
-                "Authorization": f"Bearer {perplexity_key}",
-                "Content-Type": "application/json"
-            }
-            
-            # First verify API key
-            try:
-                response = requests.get(
-                    "https://api.perplexity.ai/account/info",
-                    headers=headers
-                )
-                if response.status_code != 200:
-                    print(f"API key verification failed: {response.status_code} - {response.text}")
-                    return get_fallback_insights(task, carbon_data)
-                print("API key verified successfully")
-            except Exception as e:
-                print(f"Error verifying API key: {str(e)}")
-                return get_fallback_insights(task, carbon_data)
+    if not perplexity_key:
+        print("\nNo Perplexity API key found in environment")
+        return get_fallback_insights(task, carbon_data)
 
-            # Make the actual API call
-            client = OpenAI(
-                api_key=perplexity_key,
-                base_url="https://api.perplexity.ai",
-                timeout=30.0
+    try:
+        print("\nAttempting to call Perplexity API...")
+        
+        # First try a direct API call to verify the key
+        verify_url = "https://api.perplexity.ai/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {perplexity_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Simple test request
+        test_data = {
+            "model": "sonar-pro-2",
+            "messages": [{"role": "user", "content": "Hello"}],
+            "max_tokens": 5
+        }
+        
+        print("\nTesting API connection...")
+        try:
+            test_response = requests.post(verify_url, headers=headers, json=test_data)
+            print(f"Test API Status: {test_response.status_code}")
+            print(f"Test API Response: {test_response.text[:200]}")
+        except Exception as e:
+            print(f"Test API call failed: {str(e)}")
+            return get_fallback_insights(task, carbon_data)
+
+        if test_response.status_code != 200:
+            print(f"API test failed with status {test_response.status_code}")
+            return get_fallback_insights(task, carbon_data)
+
+        print("\nAPI test successful, making main API call...")
+        
+        # Make the actual API call
+        try:
+            response = requests.post(
+                verify_url,
+                headers=headers,
+                json={
+                    "model": "sonar-pro-2",
+                    "messages": messages,
+                    "temperature": 0.4,
+                    "max_tokens": 300
+                },
+                timeout=30
             )
             
-            response = client.chat.completions.create(
-                model="sonar-pro-2",  # Updated model name
-                messages=messages,
-                temperature=0.4,
-                max_tokens=300
-            )
-            insights = response.choices[0].message.content.strip()
-            if insights:
-                print("Successfully received insights from Perplexity API")
-                return insights
+            print(f"\nAPI Response Status: {response.status_code}")
+            if response.status_code == 200:
+                result = response.json()
+                insights = result['choices'][0]['message']['content'].strip()
+                if insights:
+                    print("Successfully received insights from API")
+                    return insights
+                else:
+                    print("Received empty insights from API")
             else:
-                print("Received empty response from API")
-                return get_fallback_insights(task, carbon_data)
+                print(f"API error: {response.text}")
+                
         except Exception as e:
-            print(f"Detailed error calling Perplexity API: {str(e)}")
+            print(f"\nAPI call failed: {str(e)}")
             if hasattr(e, 'response'):
                 print(f"Response status: {e.response.status_code}")
                 print(f"Response body: {e.response.text}")
             return get_fallback_insights(task, carbon_data)
-    
-    print("No Perplexity API key found, using fallback")
+
+    except Exception as e:
+        print(f"\nUnexpected error: {str(e)}")
+        return get_fallback_insights(task, carbon_data)
+
+    print("\nFalling back to local insights generation")
     return get_fallback_insights(task, carbon_data)
 
 # # Test function
