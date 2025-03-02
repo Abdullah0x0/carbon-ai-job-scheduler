@@ -1,9 +1,36 @@
 # 🌱 Carbon AI Job Scheduler
 ![homepage](https://github.com/user-attachments/assets/998a859b-b934-46a2-bb88-05d0abd43668)
 
-
 ## Overview
 Carbon AI Job Scheduler is an intelligent task scheduling system that optimizes computing workloads to minimize carbon emissions. By leveraging real-time carbon intensity data and multiple AI services, it provides smart scheduling recommendations and detailed environmental impact analysis for resource-intensive computing tasks.
+
+## 🎨 User Interface
+
+### Theme
+- **Dark/Light Mode Toggle**
+  - Seamless theme switching
+  - System preference detection
+  - Persistent theme selection
+  - Material UI theme customization
+
+### Main Tabs
+1. **Jobs Dashboard**
+   - Real-time job queue management
+   - Task status monitoring
+   - Cancel/Clear job operations
+   - Job details and insights display
+
+2. **Analytics Dashboard**
+   - Carbon intensity trends
+   - Savings visualization
+   - Historical data analysis
+   - Interactive charts and graphs
+
+3. **Task Scheduling**
+   - Intuitive task submission form
+   - Resource usage specification
+   - Duration and priority settings
+   - Immediate scheduling feedback
 
 ## ✨ Features
 
@@ -82,7 +109,7 @@ Carbon AI Job Scheduler is an intelligent task scheduling system that optimizes 
   - GitHub
 
 - **Development**
-  - Python 3.x
+  - Python 3.11
   - Node.js
   - npm/yarn
 
@@ -123,6 +150,35 @@ npm install
 npm start
 ```
 
+## 💫 UI Features
+
+### Theme Customization
+The application supports both light and dark modes, with smooth transitions between themes. Users can:
+- Toggle between light and dark mode
+- System theme detection
+
+### Tab Navigation
+1. **Jobs Tab**
+   - View all scheduled tasks
+   - Monitor job status in real-time
+   - Cancel running jobs
+   - Clear completed tasks
+   - View detailed job insights
+
+2. **Analytics Tab**
+   - Carbon intensity graphs
+   - Cost savings metrics
+   - Environmental impact scores
+   - Resource utilization charts
+   - Historical trend analysis
+
+3. **Schedule Tab**
+   - Task submission interface
+   - Resource specification
+   - Priority selection
+   - Duration setting
+   - Real-time scheduling recommendations
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -133,3 +189,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Groq for AI inference capabilities
 - Perplexity AI for insights generation
 - The open-source community
+
+---
+
+Made with 💚 for a greener computing future
+
+[⬆ back to top](#carbon-ai-job-scheduler)
