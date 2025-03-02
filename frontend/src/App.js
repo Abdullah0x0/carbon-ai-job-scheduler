@@ -16,6 +16,7 @@ import { green } from '@mui/material/colors';
 import TaskForm from './components/TaskForm';
 import Timeline from './components/Timeline';
 import DataAnalysis from './components/DataAnalysis';
+import Jobs from './components/Jobs';
 import { soundManager } from './utils/sounds';
 import { useTheme } from './theme/ThemeContext';
 
@@ -109,6 +110,7 @@ function App() {
             }}
           >
             <Tab label="Schedule Task" />
+            <Tab label="Job Queue" />
             <Tab label="Carbon Analysis" />
           </Tabs>
 
@@ -125,6 +127,10 @@ function App() {
           )}
 
           {tabIndex === 1 && (
+            <Jobs />
+          )}
+
+          {tabIndex === 2 && (
             <DataAnalysis analysis={scheduleData ? scheduleData.analysis : null} />
           )}
         </Paper>
