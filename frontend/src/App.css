@@ -36,3 +36,9 @@
     transform: rotate(360deg);
   }
 }
+
+/* src/App.css */
+/* You can add any additional global styling here */
+body {
+  background-color: #f7f9fc;
+}
