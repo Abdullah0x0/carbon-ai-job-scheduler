@@ -13,19 +13,23 @@ def get_insights(task, carbon_data):
     Call the Perplexity API to fetch energy-saving insights using their chat completions endpoint.
     """
     prompt = f"""
-    Task: {task.task_name}
-    Duration: {task.duration_hours} hours
+    Task: {task.task_name} ({task.duration_hours} hours, {task.resource_usage})
     Current Carbon Intensity: {carbon_data['carbon_intensity']} {carbon_data.get('unit', 'gCO2/kWh')}
     Location: {carbon_data.get('location', 'Unknown')}
+
+    Provide 3 key insights about this task's environmental impact and optimization.
+    Format each insight as a bullet point starting with •
     
-    Please provide specific insights and recommendations for scheduling this compute task 
-    to minimize carbon emissions. Consider the current carbon intensity and task duration.
+    Example format:
+    • Current carbon intensity is 20% above average
+    • Schedule during 2-6 AM for optimal efficiency
+    • Potential savings of 45 kg CO2 (30% reduction)
     """
     
     messages = [
         {
             "role": "system",
-            "content": "You are an AI assistant providing insights on energy-efficient task scheduling."
+            "content": "You are a sustainability advisor providing quick, actionable insights for compute task scheduling. Format all insights as bullet points starting with •. Be concise and specific, focusing on immediate actions and concrete numbers."
         },
         {
             "role": "user", 
@@ -38,13 +42,22 @@ def get_insights(task, carbon_data):
     try:
         response = client.chat.completions.create(
             model="sonar-pro",
-            messages=messages
+            messages=messages,
+            temperature=0.5,  # More consistent responses
+            max_tokens=250    # Keep it brief
         )
-        return response.choices[0].message.content
+        insights = response.choices[0].message.content.strip()
+        # Ensure each line starts with a bullet point
+        insights = '\n'.join([
+            f"• {line.lstrip('• -').strip()}" 
+            for line in insights.split('\n') 
+            if line.strip()
+        ])
+        return insights
         
     except Exception as e:
         print(f"Error calling Perplexity API: {str(e)}")
-        return "Unable to fetch insights at this time. Please try again later."
+        return "• Consider scheduling during off-peak hours (typically night time) for optimal efficiency."
 
 # # Test function
 # if __name__ == "__main__":
