@@ -25,6 +25,7 @@ import CO2Icon from '@mui/icons-material/Co2';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { green, orange, red } from '@mui/material/colors';
 import { soundManager } from '../utils/sounds';
+import { format } from 'date-fns';
 
 function Timeline({ data }) {
   const [expandedSection, setExpandedSection] = useState('all');
@@ -186,9 +187,59 @@ function Timeline({ data }) {
                         bgcolor: 'rgba(76, 175, 80, 0.08)',
                         mb: 2
                       }}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {recommendation.recommendation || recommendation.message}
-                        </ReactMarkdown>
+                        <Typography variant="body1" gutterBottom>
+                          {recommendation.reasoning || 'Optimizing for carbon efficiency'}
+                        </Typography>
+                        
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2 }}>
+                          <Tooltip title="Scheduled Start Time">
+                            <Chip
+                              icon={<AccessTimeIcon />}
+                              label={format(new Date(recommendation.recommended_start_time), 'MMM d, yyyy HH:mm')}
+                              color="primary"
+                              size="small"
+                            />
+                          </Tooltip>
+                          
+                          <Tooltip title="Confidence Score">
+                            <Chip
+                              label={`${(recommendation.confidence_score * 100).toFixed(1)}% Confidence`}
+                              color={recommendation.confidence_score > 0.7 ? "success" : "warning"}
+                              size="small"
+                            />
+                          </Tooltip>
+                          
+                          <Tooltip title="Estimated Carbon Savings">
+                            <Chip
+                              icon={<CO2Icon />}
+                              label={`${recommendation.carbon_savings_estimate.toFixed(2)} kg CO2 saved`}
+                              color="success"
+                              size="small"
+                            />
+                          </Tooltip>
+                        </Box>
+                        
+                        {recommendation.alternative_windows?.length > 0 && (
+                          <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                              Alternative Windows:
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                              {recommendation.alternative_windows.map((window, index) => (
+                                <Tooltip 
+                                  key={index}
+                                  title={`Expected Intensity: ${window.expected_intensity.toFixed(2)} ${carbon_data.unit}`}
+                                >
+                                  <Chip
+                                    label={format(new Date(window.start_time), 'MMM d, yyyy HH:mm')}
+                                    variant="outlined"
+                                    size="small"
+                                  />
+                                </Tooltip>
+                              ))}
+                            </Box>
+                          </Box>
+                        )}
                       </Box>
 
                       {recommendation.expected_intensity && (

@@ -175,7 +175,8 @@ function Jobs() {
               <TableCell>Task Name</TableCell>
               <TableCell>Duration (hours)</TableCell>
               <TableCell>Resource Usage</TableCell>
-              <TableCell>Carbon Saved (gCO2)</TableCell>
+              <TableCell>Scheduled For</TableCell>
+              <TableCell>Carbon Savings</TableCell>
               <TableCell>Created At</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
@@ -195,10 +196,53 @@ function Jobs() {
                 <TableCell>{job.duration_hours}</TableCell>
                 <TableCell>{job.resource_usage}</TableCell>
                 <TableCell>
-                  {job.carbon_saved ? 
-                    job.carbon_saved.toFixed(2) :
-                    'N/A'
-                  }
+                  {job.scheduled_time ? (
+                    <Tooltip title={
+                      `${job.confidence_score ? `Confidence: ${(job.confidence_score * 100).toFixed(1)}%\n` : ''}` +
+                      `${job.reasoning || 'Optimizing for carbon efficiency'}\n\n` +
+                      `${job.alternative_windows?.length ? 
+                        'Alternative Windows:\n' + job.alternative_windows.map(w => 
+                          `• ${format(new Date(w.start_time), 'MMM d, yyyy HH:mm')}` +
+                          `${w.expected_intensity ? ` (${w.expected_intensity.toFixed(2)} gCO2/kWh)` : ''}`
+                        ).join('\n')
+                        : ''
+                      }`
+                    }>
+                      <Chip
+                        label={format(new Date(job.scheduled_time), 'MMM d, yyyy HH:mm')}
+                        color={job.confidence_score > 0.7 ? "success" : "warning"}
+                        size="small"
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Chip
+                      label="Not scheduled"
+                      color="default"
+                      size="small"
+                    />
+                  )}
+                </TableCell>
+                <TableCell>
+                  {job.carbon_saved !== null && job.carbon_saved !== undefined ? (
+                    <Tooltip title={
+                      `Expected Carbon Intensity: ${job.expected_intensity !== null && job.expected_intensity !== undefined ? `${job.expected_intensity.toFixed(2)} gCO2/kWh` : 'Calculating...'}\n` +
+                      `Baseline Intensity: ${job.carbon_intensity !== null && job.carbon_intensity !== undefined ? `${job.carbon_intensity.toFixed(2)} gCO2/kWh` : 'Calculating...'}`
+                    }>
+                      <Chip
+                        label={`${job.carbon_saved.toFixed(2)} kg CO2`}
+                        color="success"
+                        size="small"
+                        variant={job.carbon_saved > 0 ? "filled" : "outlined"}
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Chip
+                      label="Calculating..."
+                      color="default"
+                      size="small"
+                      variant="outlined"
+                    />
+                  )}
                 </TableCell>
                 <TableCell>
                   {format(new Date(job.created_at), 'MMM d, yyyy HH:mm')}

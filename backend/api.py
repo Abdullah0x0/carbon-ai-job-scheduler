@@ -29,10 +29,36 @@ class JobBase(BaseModel):
     carbon_intensity: Optional[float]
     carbon_saved: Optional[float]
     created_at: datetime
+    parameters: Optional[dict] = None
+    results: Optional[dict] = None
 
     class Config:
         orm_mode = True
         from_attributes = True
+
+    @property
+    def confidence_score(self) -> Optional[float]:
+        if not self.parameters:
+            return None
+        return self.parameters.get("confidence_score")
+
+    @property
+    def reasoning(self) -> Optional[str]:
+        if not self.parameters:
+            return None
+        return self.parameters.get("reasoning")
+
+    @property
+    def expected_intensity(self) -> Optional[float]:
+        if not self.parameters or "recommendation" not in self.parameters:
+            return None
+        return self.parameters["recommendation"].get("expected_intensity")
+
+    @property
+    def alternative_windows(self) -> Optional[list]:
+        if not self.parameters or "recommendation" not in self.parameters:
+            return None
+        return self.parameters["recommendation"].get("alternative_windows", [])
 
 @router.post("/schedule")
 async def schedule_task(task: Task, db: Session = Depends(get_db)):
@@ -47,7 +73,7 @@ async def schedule_task(task: Task, db: Session = Depends(get_db)):
         insights = get_insights(task, carbon_data)
 
         # Calculate metrics
-        baseline_intensity = carbon_data["carbon_intensity"]
+        baseline_intensity = carbon_data.get("carbon_intensity", 0)
         optimized_intensity = recommendation.get("expected_intensity", baseline_intensity)
         carbon_difference = baseline_intensity - optimized_intensity
         money_saved = carbon_difference * 0.05
@@ -65,12 +91,21 @@ async def schedule_task(task: Task, db: Session = Depends(get_db)):
             task_name=task.task_name,
             duration_hours=task.duration_hours,
             resource_usage=task.resource_usage,
-            carbon_intensity=optimized_intensity,
-            carbon_saved=carbon_difference,
+            scheduled_time=datetime.fromisoformat(recommendation.get("recommended_start_time", datetime.now().isoformat()).replace('Z', '+00:00')),
+            carbon_intensity=baseline_intensity,
+            carbon_saved=recommendation.get("carbon_savings_estimate", 0),
             parameters={
                 "task": task.dict(),
                 "carbon_data": carbon_data,
-                "recommendation": recommendation
+                "recommendation": {
+                    "expected_intensity": optimized_intensity,
+                    "recommended_start_time": recommendation.get("recommended_start_time"),
+                    "alternative_windows": recommendation.get("alternative_windows", []),
+                    "confidence_score": recommendation.get("confidence_score", 0.7),
+                    "reasoning": recommendation.get("reasoning", "Optimized for lower carbon intensity")
+                },
+                "confidence_score": recommendation.get("confidence_score", 0.7),
+                "reasoning": recommendation.get("reasoning", "Optimized for lower carbon intensity")
             },
             results={
                 "insights": insights,
