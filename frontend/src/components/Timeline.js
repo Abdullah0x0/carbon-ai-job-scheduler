@@ -1,97 +1,259 @@
-// src/components/Timeline.js
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, Typography, Grid, Box } from '@mui/material';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Card, 
+  CardContent, 
+  Typography, 
+  Grid, 
+  Box,
+  Chip,
+  IconButton,
+  Collapse,
+  LinearProgress,
+  Tooltip,
+  useTheme,
+  useMediaQuery
+} from '@mui/material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import InfoIcon from '@mui/icons-material/Info';
 import RecommendIcon from '@mui/icons-material/Recommend'; 
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import { green } from '@mui/material/colors';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-
-const theme = createTheme();
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import CO2Icon from '@mui/icons-material/Co2';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { green, orange, red } from '@mui/material/colors';
+import { soundManager } from '../utils/sounds';
 
 function Timeline({ data }) {
+  const [expandedSection, setExpandedSection] = useState('all');
+  const theme = useTheme();
+  
   const { task, carbon_data, recommendation, insights } = data;
 
-  return (
-    <ThemeProvider theme={theme}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+  const getCarbonIntensityColor = (intensity) => {
+    const value = parseFloat(intensity);
+    if (value < 300) return green[500];
+    if (value < 600) return orange[500];
+    return red[500];
+  };
+
+  const currentIntensityColor = getCarbonIntensityColor(carbon_data.carbon_intensity);
+  const expectedIntensityColor = recommendation.expected_intensity ? 
+    getCarbonIntensityColor(recommendation.expected_intensity) : green[500];
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
+  const toggleSection = (section) => {
+    soundManager.play('submit');
+    setExpandedSection(expandedSection === section ? 'all' : section);
+  };
+
+  const renderExpandIcon = (section) => {
+    const isExpanded = expandedSection === 'all' || expandedSection === section;
+    return (
+      <IconButton 
+        size="small" 
+        onClick={() => toggleSection(section)}
+        sx={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)', transition: '0.3s' }}
       >
-        <Typography variant="h5" gutterBottom sx={{ mt: 3, color: '#009688', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <InfoIcon /> Schedule Recommendation
-        </Typography>
-        <Grid container spacing={3}>
-          {/* Task Information */}
-          <Grid item xs={12}>
-            <Card variant="outlined" sx={{ boxShadow: 2, '&:hover': { boxShadow: 4 } }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <AssignmentIcon sx={{ color: green[500] }} />
-                  <Typography variant="h6">
-                    Task Information
-                  </Typography>
-                </Box>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  <strong>Task:</strong> {task.task_name} ({task.duration_hours} hours)
-                </Typography>
-                <Typography variant="body1">
-                  <strong>Current Carbon Intensity:</strong> {carbon_data.carbon_intensity} {carbon_data.unit}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+        {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+      </IconButton>
+    );
+  };
 
-          {/* Recommendation */}
-          <Grid item xs={12}>
-            <Card variant="outlined" sx={{ boxShadow: 2, '&:hover': { boxShadow: 4 } }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <RecommendIcon sx={{ color: green[500] }} />
-                  <Typography variant="h6">
-                    Recommendation
-                  </Typography>
-                </Box>
-                <Box sx={{ pl: 2, borderLeft: '4px solid #e0e0e0' }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {recommendation.recommendation || recommendation.message}
-                  </ReactMarkdown>
-                </Box>
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+        }}
+      >
+        <Box sx={{ mt: 4, mb: 2 }}>
+          <Typography variant="h5" gutterBottom sx={{ 
+            color: theme.palette.primary.main, 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1,
+            mb: 3
+          }}>
+            <RecommendIcon /> Scheduling Analysis
+          </Typography>
 
-                {recommendation.expected_intensity && (
-                  <Typography sx={{ mt: 2, fontWeight: 500 }}>
-                    <strong>Expected Carbon Intensity:</strong> {recommendation.expected_intensity} {carbon_data.unit}
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
+          <Grid container spacing={3}>
+            {/* Task Information */}
+            <Grid item xs={12}>
+              <motion.div variants={cardVariants}>
+                <Card 
+                  variant="outlined" 
+                  sx={{ 
+                    borderRadius: 2,
+                    transition: '0.3s',
+                    '&:hover': { boxShadow: 3 }
+                  }}
+                >
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AssignmentIcon color="primary" />
+                        <Typography variant="h6">Task Details</Typography>
+                      </Box>
+                      {renderExpandIcon('task')}
+                    </Box>
 
-          {/* Insight */}
-          <Grid item xs={12}>
-            <Card variant="outlined" sx={{ boxShadow: 2, '&:hover': { boxShadow: 4 } }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <InfoIcon sx={{ color: green[500] }} />
-                  <Typography variant="h6">
-                    Insight
-                  </Typography>
-                </Box>
-                <Box sx={{ pl: 2, borderLeft: '4px solid #e0e0e0' }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {insights}
-                  </ReactMarkdown>
-                </Box>
-              </CardContent>
-            </Card>
+                    <Collapse in={expandedSection === 'all' || expandedSection === 'task'}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                            <Chip 
+                              icon={<AccessTimeIcon />} 
+                              label={`${task.duration_hours} hours`}
+                              color="primary"
+                              variant="outlined"
+                            />
+                          </Box>
+                          <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>
+                            {task.task_name}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Typography variant="subtitle2" color="textSecondary">
+                              Current Carbon Intensity
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CO2Icon sx={{ color: currentIntensityColor }} />
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="body2" color="textSecondary">
+                                  {carbon_data.carbon_intensity} {carbon_data.unit}
+                                </Typography>
+                                <LinearProgress 
+                                  variant="determinate" 
+                                  value={(carbon_data.carbon_intensity / 1000) * 100}
+                                  sx={{ 
+                                    mt: 0.5,
+                                    height: 8,
+                                    borderRadius: 4,
+                                    backgroundColor: theme.palette.grey[200],
+                                    '& .MuiLinearProgress-bar': {
+                                      backgroundColor: currentIntensityColor,
+                                      borderRadius: 4,
+                                    }
+                                  }}
+                                />
+                              </Box>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </Collapse>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+
+            {/* Recommendation */}
+            <Grid item xs={12}>
+              <motion.div variants={cardVariants}>
+                <Card 
+                  variant="outlined" 
+                  sx={{ 
+                    borderRadius: 2,
+                    transition: '0.3s',
+                    '&:hover': { boxShadow: 3 }
+                  }}
+                >
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <RecommendIcon sx={{ color: green[500] }} />
+                        <Typography variant="h6">Recommendation</Typography>
+                      </Box>
+                      {renderExpandIcon('recommendation')}
+                    </Box>
+
+                    <Collapse in={expandedSection === 'all' || expandedSection === 'recommendation'}>
+                      <Box sx={{ 
+                        p: 2, 
+                        borderRadius: 1,
+                        bgcolor: 'rgba(76, 175, 80, 0.08)',
+                        mb: 2
+                      }}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {recommendation.recommendation || recommendation.message}
+                        </ReactMarkdown>
+                      </Box>
+
+                      {recommendation.expected_intensity && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+                          <Tooltip title="Expected Carbon Intensity">
+                            <Chip
+                              icon={<CO2Icon />}
+                              label={`${recommendation.expected_intensity} ${carbon_data.unit}`}
+                              sx={{ 
+                                bgcolor: `${expectedIntensityColor}15`,
+                                color: expectedIntensityColor,
+                                '& .MuiChip-icon': { color: expectedIntensityColor }
+                              }}
+                            />
+                          </Tooltip>
+                          <Typography variant="body2" color="textSecondary">
+                            Expected Carbon Intensity
+                          </Typography>
+                        </Box>
+                      )}
+                    </Collapse>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+
+            {/* Insights */}
+            <Grid item xs={12}>
+              <motion.div variants={cardVariants}>
+                <Card 
+                  variant="outlined" 
+                  sx={{ 
+                    borderRadius: 2,
+                    transition: '0.3s',
+                    '&:hover': { boxShadow: 3 }
+                  }}
+                >
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <InfoIcon sx={{ color: theme.palette.info.main }} />
+                        <Typography variant="h6">Additional Insights</Typography>
+                      </Box>
+                      {renderExpandIcon('insights')}
+                    </Box>
+
+                    <Collapse in={expandedSection === 'all' || expandedSection === 'insights'}>
+                      <Box sx={{ 
+                        p: 2, 
+                        borderRadius: 1,
+                        bgcolor: 'rgba(33, 150, 243, 0.08)'
+                      }}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {insights}
+                        </ReactMarkdown>
+                      </Box>
+                    </Collapse>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
           </Grid>
-        </Grid>
+        </Box>
       </motion.div>
-    </ThemeProvider>
+    </AnimatePresence>
   );
 }
 
