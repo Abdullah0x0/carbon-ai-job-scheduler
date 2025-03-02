@@ -8,10 +8,13 @@ from api import router as api_router
 
 app = FastAPI(title="Carbon-Aware AI Job Scheduler API")
 
-# Add CORS middleware to allow requests from your frontend
+# Add CORS middleware to allow requests from both localhost and Vercel
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://carbon-ai-job-scheduler.onrender.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
