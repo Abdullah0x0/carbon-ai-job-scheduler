@@ -2,17 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api import router
 import os
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
 
 app = FastAPI()
-
-# CSP Middleware
-class CSPMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        response = await call_next(request)
-        response.headers["Content-Security-Policy"] = "script-src 'self' 'unsafe-eval' 'unsafe-inline'; object-src 'none';"
-        return response
 
 # Configure CORS
 origins = [
@@ -22,11 +13,10 @@ origins = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",
     # Production URLs
-    "https://carbon-ai-job-scheduler.vercel.app",
-    "https://carbon-ai-job-scheduler.onrender.com"
+    "https://carbon-ai-job-scheduler.vercel.app"
+    #"https://carbon-ai-job-scheduler.onrender.com"
 ]
 
-app.add_middleware(CSPMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
