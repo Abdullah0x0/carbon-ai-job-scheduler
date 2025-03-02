@@ -13,7 +13,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://carbon-ai-job-scheduler.onrender.com"
+        "https://carbon-ai-job-scheduler.vercel.app/"
     ],
     allow_credentials=True,
     allow_methods=["*"],
