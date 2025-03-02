@@ -4,13 +4,40 @@ from openai import OpenAI
 from dotenv import load_dotenv
 load_dotenv()
 
-PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
-if not PERPLEXITY_API_KEY:
-    raise ValueError("Perplexity API key not found in environment variables")
+def get_fallback_insights(task, carbon_data):
+    """Generate fallback insights when API is unavailable"""
+    task_type = task.task_name.lower()
+    resource_profile = task.resource_usage.lower()
+    duration = task.duration_hours
+    intensity = carbon_data['carbon_intensity']
+    unit = carbon_data.get('unit', 'gCO2/kWh')
+    
+    # Determine task category
+    compute_intensive = any(word in task_type for word in ['training', 'processing', 'analysis', 'compute'])
+    io_intensive = any(word in task_type for word in ['backup', 'transfer', 'download', 'upload'])
+    
+    base_insights = f"""Current grid carbon intensity is {intensity} {unit}. Based on your {duration}-hour {task_type} task with {resource_profile} resource profile, here are key optimization insights:
+
+"""
+    
+    if compute_intensive:
+        base_insights += """• Consider implementing dynamic voltage and frequency scaling (DVFS) to optimize power consumption while maintaining performance targets. This typically yields 15-30% energy savings.
+• Batch processing and workload consolidation can improve resource utilization and reduce idle power consumption.
+• Monitor and adjust CPU/GPU clock speeds based on workload demands."""
+    elif io_intensive:
+        base_insights += """• Schedule data transfers during periods of lower grid carbon intensity to minimize environmental impact.
+• Implement data compression to reduce transfer volumes and storage requirements.
+• Consider using local caching and incremental processing where applicable."""
+    else:
+        base_insights += """• Implement automated resource scaling based on actual usage patterns.
+• Consider containerization to improve resource isolation and utilization.
+• Use task checkpointing to enable flexible scheduling around optimal grid conditions."""
+        
+    return base_insights
 
 def get_insights(task, carbon_data):
     """
-    Call the Perplexity API to fetch energy-saving insights using their chat completions endpoint.
+    Generate insights using Perplexity API with fallback to local generation.
     """
     prompt = f"""
     Task Analysis Request:
@@ -45,23 +72,25 @@ Keep each paragraph focused and concise. Use technical language but remain clear
         }
     ]
 
-    client = OpenAI(api_key=PERPLEXITY_API_KEY, base_url="https://api.perplexity.ai")
+    # Try to use Perplexity API if available
+    perplexity_key = os.getenv("PERPLEXITY_API_KEY")
+    if perplexity_key:
+        try:
+            client = OpenAI(api_key=perplexity_key, base_url="https://api.perplexity.ai")
+            response = client.chat.completions.create(
+                model="sonar-pro",
+                messages=messages,
+                temperature=0.4,
+                max_tokens=300
+            )
+            insights = response.choices[0].message.content.strip()
+            if insights:
+                return insights
+        except Exception as e:
+            print(f"Error calling Perplexity API: {str(e)}")
     
-    try:
-        response = client.chat.completions.create(
-            model="sonar-pro",
-            messages=messages,
-            temperature=0.4,  # More consistent responses
-            max_tokens=300    # Allow for slightly longer, structured response
-        )
-        insights = response.choices[0].message.content.strip()
-        return insights
-        
-    except Exception as e:
-        print(f"Error calling Perplexity API: {str(e)}")
-        return """Current system conditions indicate high resource availability with moderate load levels. Task parameters suggest standard compute requirements.
-
-Consider implementing dynamic voltage and frequency scaling (DVFS) to optimize power consumption while maintaining performance targets. This approach typically yields 15-30% energy savings with minimal impact on execution time."""
+    # Fallback to local insights generation
+    return get_fallback_insights(task, carbon_data)
 
 # # Test function
 # if __name__ == "__main__":

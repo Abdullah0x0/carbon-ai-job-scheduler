@@ -135,20 +135,30 @@ function Timeline({ data }) {
                                 <Typography variant="body2" color="textSecondary">
                                   {carbon_data.carbon_intensity} {carbon_data.unit}
                                 </Typography>
-                                <LinearProgress 
-                                  variant="determinate" 
-                                  value={(carbon_data.carbon_intensity / 1000) * 100}
-                                  sx={{ 
-                                    mt: 0.5,
-                                    height: 8,
-                                    borderRadius: 4,
-                                    backgroundColor: theme.palette.grey[200],
-                                    '& .MuiLinearProgress-bar': {
-                                      backgroundColor: currentIntensityColor,
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                                  <LinearProgress 
+                                    variant="determinate" 
+                                    value={(carbon_data.carbon_intensity / 1000) * 100}
+                                    sx={{ 
+                                      flex: 1,
+                                      height: 8,
                                       borderRadius: 4,
-                                    }
-                                  }}
-                                />
+                                      backgroundColor: theme.palette.grey[200],
+                                      '& .MuiLinearProgress-bar': {
+                                        backgroundColor: currentIntensityColor,
+                                        borderRadius: 4,
+                                      }
+                                    }}
+                                  />
+                                  <Tooltip title={carbon_data.data_source === 'watttime' ? 'Real-time data from WattTime' : 'Simulated data'}>
+                                    <Chip
+                                      label={carbon_data.data_source === 'watttime' ? 'Real' : 'Simulated'}
+                                      color={carbon_data.data_source === 'watttime' ? 'success' : 'warning'}
+                                      size="small"
+                                      variant="outlined"
+                                    />
+                                  </Tooltip>
+                                </Box>
                               </Box>
                             </Box>
                           </Box>
