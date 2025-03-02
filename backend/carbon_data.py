@@ -48,7 +48,7 @@ def get_carbon_intensity():
     if not token:
         # Fallback to simulated data if authentication fails
         print("Authentication failed!!!!!")
-        carbon_intensity = 0 #random.randint(100, 500)
+        carbon_intensity = random.randint(300, 500)  # Use a reasonable default range
         return {"carbon_intensity": carbon_intensity, "unit": "gCO2/kWh"}
     
     # First get the region for the coordinates
@@ -93,7 +93,7 @@ def get_carbon_intensity():
         print("Error fetching carbon intensity from WattTime API:", e)
         print("Using simulated data")
         # Fallback: return a simulated random value
-        carbon_intensity = random.randint(100, 500)
+        carbon_intensity = random.randint(300, 500)  # Use same range as above for consistency
         return {"carbon_intensity": carbon_intensity, "unit": "gCO2/kWh"}
 
 
