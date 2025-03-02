@@ -27,10 +27,17 @@ def get_optimal_schedule(task, carbon_data):
             }]
         )
         # Extract the response content
-        recommendation = {
-            "recommendation": response.choices[0].message.content if response.choices else "No recommendation available"
+        recommendation_text = response.choices[0].message.content if response.choices else "No recommendation available"
+        
+        # Calculate expected optimized intensity
+        # For demonstration, assume we can achieve 20-40% reduction based on task duration
+        reduction_factor = min(0.4, 0.2 + (task.duration_hours / 24) * 0.2)  # More flexible tasks can achieve greater reductions
+        expected_intensity = carbon_data["carbon_intensity"] * (1 - reduction_factor)
+        
+        return {
+            "recommendation": recommendation_text,
+            "expected_intensity": expected_intensity
         }
-        return recommendation
     except Exception as e:
         # Fallback recommendation in case of an error with Groq API call
         return {

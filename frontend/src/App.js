@@ -1,17 +1,17 @@
-// src/App.js
 import React, { useState } from 'react';
-import { Container, Typography, Box, CircularProgress, Paper } from '@mui/material';
+import { Container, Typography, Box, CircularProgress, Paper, Tabs, Tab } from '@mui/material';
 import TaskForm from './components/TaskForm';
 import Timeline from './components/Timeline';
+import DataAnalysis from './components/DataAnalysis';
 
 function App() {
   const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [tabIndex, setTabIndex] = useState(0);
 
   const handleSchedule = async (taskData) => {
     setLoading(true);
     try {
-      // Get the API URL from the environment variable; default to localhost for development.
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
       const response = await fetch(`${apiUrl}/api/schedule`, {
         method: 'POST',
@@ -26,6 +26,10 @@ function App() {
     setLoading(false);
   };
 
+  const handleTabChange = (event, newValue) => {
+    setTabIndex(newValue);
+  };
+
   return (
     <Container maxWidth="md">
       <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
@@ -35,17 +39,31 @@ function App() {
         <Typography variant="subtitle1" align="center" gutterBottom>
           A smart assistant to schedule compute-heavy tasks for lower carbon emissions.
         </Typography>
-        <TaskForm onSchedule={handleSchedule} />
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-            <CircularProgress color="primary" />
-          </Box>
+
+        <Tabs value={tabIndex} onChange={handleTabChange} centered sx={{ mb: 3 }}>
+          <Tab label="Schedule" />
+          <Tab label="Data Analysis" />
+        </Tabs>
+
+        {tabIndex === 0 && (
+          <>
+            <TaskForm onSchedule={handleSchedule} />
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <CircularProgress color="primary" />
+              </Box>
+            )}
+            {scheduleData && <Timeline data={scheduleData} />}
+          </>
         )}
-        {scheduleData && <Timeline data={scheduleData} />}
+
+        {tabIndex === 1 && (
+          <DataAnalysis analysis={scheduleData ? scheduleData.analysis : null} />
+        )}
       </Paper>
       <Box sx={{ mt: 4, mb: 2, textAlign: 'center' }}>
         <Typography variant="body2" color="textSecondary">
-          &copy; 2025 Abdullah & Ngoc. All rights reserved.
+          &copy; 2025 Carbon AI Scheduler All rights reserved.
         </Typography>
       </Box>
     </Container>
