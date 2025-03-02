@@ -1,6 +1,7 @@
 import os
 import random
 import requests
+from datetime import datetime, timedelta
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 load_dotenv()
@@ -10,12 +11,20 @@ def check_watttime_access(token):
     url = "https://api.watttime.org/v3/my-access"
     headers = {"Authorization": f"Bearer {token}"}
     try:
+        print(f"Checking WattTime access with token: {token[:10]}...")
         response = requests.get(url, headers=headers)
+        print(f"Access check response status: {response.status_code}")
+        if response.status_code != 200:
+            print(f"Access check error response: {response.text}")
         response.raise_for_status()
-        print("Access check response:", response.json())
-        return response.json()
+        access_data = response.json()
+        print("Access check response:", access_data)
+        return access_data
     except Exception as e:
-        print(f"Error checking WattTime access: {e}")
+        print(f"Error checking WattTime access: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
+        if isinstance(e, requests.exceptions.RequestException):
+            print(f"Request error details: {e.response.text if e.response else 'No response'}")
         return None
 
 def get_watttime_token():
@@ -23,33 +32,76 @@ def get_watttime_token():
     username = os.getenv("WATTTIME_USERNAME")
     password = os.getenv("WATTTIME_PASSWORD")
     
+    print(f"Checking WattTime credentials - Username present: {bool(username)}, Password present: {bool(password)}")
+    
     if not username or not password:
-        raise ValueError("WattTime credentials not found in environment variables")
+        print("WattTime credentials not found in environment variables")
+        return None
     
     login_url = "https://api.watttime.org/login"
     try:
+        print(f"Attempting to login to WattTime API with username: {username}")
         response = requests.get(login_url, auth=HTTPBasicAuth(username, password))
+        print(f"WattTime login response status: {response.status_code}")
+        if response.status_code != 200:
+            print(f"WattTime login error response: {response.text}")
         response.raise_for_status()
         print("Login successful")
         token = response.json()['token']
         # Check access after getting token
-        check_watttime_access(token)
+        access_data = check_watttime_access(token)
+        print(f"Access check result: {access_data}")
         return token
     except Exception as e:
-        print(f"Error getting WattTime token: {e}")
+        print(f"Error getting WattTime token: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
+        if isinstance(e, requests.exceptions.RequestException):
+            print(f"Request error details: {e.response.text if e.response else 'No response'}")
         return None
+
+def generate_simulated_data():
+    """Generate simulated carbon intensity data with a realistic pattern"""
+    base_intensity = random.randint(600, 800)
+    current_time = datetime.utcnow()
+    
+    # Simulate 24 hours of data with 15-minute intervals
+    data = []
+    for i in range(96):  # 24 hours * 4 (15-minute intervals)
+        time_offset = timedelta(minutes=15 * i)
+        # Add some random variation to create a realistic pattern
+        variation = random.randint(-50, 50)
+        # Time of day variation (lower at night, higher during peak hours)
+        hour = (current_time + time_offset).hour
+        if 0 <= hour < 6:  # Night hours
+            time_factor = -100
+        elif 12 <= hour < 18:  # Peak hours
+            time_factor = 100
+        else:  # Other hours
+            time_factor = 0
+            
+        value = base_intensity + variation + time_factor
+        data.append({
+            "point_time": (current_time + time_offset).isoformat(),
+            "value": max(300, min(1200, value))  # Keep values in realistic range
+        })
+    
+    return {
+        "carbon_intensity": data[0]["value"],
+        "unit": "lbs_co2_per_mwh",
+        "location": "SIMULATED_CAISO_NORTH",
+        "timestamp": data[0]["point_time"],
+        "forecast": data
+    }
 
 def get_carbon_intensity():
     """
     Fetch real-time carbon intensity data from the WattTime API.
-    Documentation: https://www.watttime.org/api-documentation/
+    Falls back to simulated data if the API is unavailable.
     """
     token = get_watttime_token()
     if not token:
-        # Fallback to simulated data if authentication fails
-        print("Authentication failed!!!!!")
-        carbon_intensity = random.randint(600, 1000)  # Values in lbs_co2_per_mwh
-        return {"carbon_intensity": carbon_intensity, "unit": "lbs_co2_per_mwh"}
+        print("Using simulated data due to authentication failure")
+        return generate_simulated_data()
     
     # First get the region for the coordinates
     region_url = "https://api.watttime.org/v3/region-from-loc"
@@ -77,27 +129,20 @@ def get_carbon_intensity():
         forecast_response = requests.get(forecast_url, headers=headers, params=forecast_params)
         forecast_response.raise_for_status()
         forecast_data = forecast_response.json()
-        #print(f"Forecast data: {forecast_data}")
-        
-        # Get the current carbon intensity from the first data point
-        current_intensity = forecast_data["data"][0]["value"]
-        current_timestamp = forecast_data["data"][0]["point_time"]
         
         return {
-            "carbon_intensity": current_intensity,
+            "carbon_intensity": forecast_data["data"][0]["value"],
             "unit": "lbs_co2_per_mwh",
             "location": region,
-            "timestamp": current_timestamp
+            "timestamp": forecast_data["data"][0]["point_time"],
+            "forecast": forecast_data["data"]
         }
     except Exception as e:
-        print("Error fetching carbon intensity from WattTime API:", e)
+        print(f"Error fetching carbon intensity from WattTime API: {e}")
         print("Using simulated data")
-        # Fallback: return a simulated random value
-        carbon_intensity = random.randint(600, 1000)  # Values in lbs_co2_per_mwh
-        return {"carbon_intensity": carbon_intensity, "unit": "lbs_co2_per_mwh"}
+        return generate_simulated_data()
 
-
-# # Test the function
-# if __name__ == "__main__":
-#     data = get_carbon_intensity()
-#     print("Carbon Intensity Data:", data)
+# Test the function
+if __name__ == "__main__":
+    data = get_carbon_intensity()
+    print("Carbon Intensity Data:", data)
